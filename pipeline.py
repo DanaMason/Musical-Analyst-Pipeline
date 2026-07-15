@@ -5,7 +5,7 @@ import json
 import difflib
 import unicodedata
 from pathlib import Path
-from transformers import AutoTokenizer, AutoModelForCausalLM, ClapModel, ClapProcessor, Wav2Vec2FeatureExtractor, AutoModel
+from transformers import AutoTokenizer, AutoModelForCausalLM, Wav2Vec2FeatureExtractor, AutoModel # , ClapModel, ClapProcessor,	# Legacy Code
 import librosa
 import torch
 import numpy as np
@@ -13,12 +13,20 @@ import pandas as pd
 from json_repair import repair_json
 from transformers import BitsAndBytesConfig
 
-CSV_PATH = "/home/share/SDSO/new_metadata.csv"
-AUDIO_ROOT = "/home/share/SDSO/audio_data" 
+SDSO_ROOT = os.environ.get("SDSO_ROOT", "/home/ren-admin/sdso")
+CSV_PATH = "/home/ren-admin/sdso/Musical-Analyst-Pipeline/new_metadata.csv"
+AUDIO_ROOT = "/home/ren-admin/sdso/audio_data" 
 PROMPT_COLS = ["track_title", "genre_tags", "english_translation",
                "song_description", "liner_notes", "featured_performers"]
 
-os.environ["HF_HOME"] = "/home/share/SDSO/hf_cache"  # Set Hugging Face cache directory
+os.environ["HF_HOME"] = "/home/ren-admin/sdso/hf_cache"  # Set Hugging Face cache directory
+
+PHI4_ID = os.environ.get("PHI4_ID", "microsoft/phi-4")
+MERT_ID = os.environ.get("MERT_ID", "m-a-p/MERT-v1-95M")
+
+USE_4BIT = os.environ.get("SDSO_4BIT", "1") == "1"
+CTX_LIMIT = 16384
+MERT_SECONDS = float(os.environ.get("MERT_SECONDS", "60"))
 
 # Prompt Engineering Below:
 
