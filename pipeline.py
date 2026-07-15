@@ -130,10 +130,8 @@ def load_phi4():
 
 # Load MERT Model
 def load_mert():
-    os.environ["HF_HOME"] = "/home/mason.dana/.cache/huggingface"  # ADJUST_LATER: private -> shared SDSO cache
-    processor = Wav2Vec2FeatureExtractor.from_pretrained("m-a-p/MERT-v1-95M", trust_remote_code=True)
-    mert = AutoModel.from_pretrained("m-a-p/MERT-v1-95M", trust_remote_code=True, device_map="auto")
-    os.environ["HF_HOME"] = "/home/share/SDSO/hf_cache"
+    processor = Wav2Vec2FeatureExtractor.from_pretrained(MERT_ID, trust_remote_code=True)
+    mert = AutoModel.from_pretrained(MERT_ID, trust_remote_code=True, device_map="auto")
     mert.eval()
     return mert, processor
 
