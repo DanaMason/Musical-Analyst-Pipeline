@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.env/
+
+# HuggingFace cache
+.cache/
+hf_cache/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Model outputs
+*.npy
