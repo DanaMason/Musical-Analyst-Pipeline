@@ -115,19 +115,13 @@ def load_music_csv(path: str = CSV_PATH):
 
 # Load Phi 4.0 Model
 def load_phi4():
-    if torch.cuda.is_available():
-        torch.cuda.set_per_process_memory_fraction(0.92, 0)
-    bnb = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,   
-        bnb_4bit_use_double_quant=True,
-    )
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
     tok = AutoTokenizer.from_pretrained(PHI4_ID)
     model = AutoModelForCausalLM.from_pretrained(
-        PHI4_ID, quantization_config=bnb, device_map="auto"
+        PHI4_ID, device_map={"": 0}, dtype=torch.bfloat16,
     )
-    model.eval()
+    assert "cpu" not in str(model.hf_device_map).lower(), f"phi-4 still on CPU: {model.hf_device_map}"
     return model, tok
 
 # Load MERT Model
