@@ -62,24 +62,23 @@ for m in st.session_state.messages:
     with st.chat_message(m["role"], avatar="🎶" if m["role"] == "assistant" else None):
         st.markdown(m["content"])
 
-# Coerce every cell to a plain Arrow-serializable scalar. numpy floats/arrays
-# in an object column segfault PyArrow inside st.table; this prevents that.
-def _arrow_safe(rows: list) -> list:
-    def scalar(v):
-        if isinstance(v, (str, bool)) or v is None:
-            return v
-        if isinstance(v, (int, float)):
-            return v
-        try:
-            import numpy as _np
-            if isinstance(v, _np.generic):      # numpy float64/int64/etc.
-                return v.item()
-            if isinstance(v, _np.ndarray):      # stray vector -> readable text
-                return _np.array2string(v, precision=3, threshold=8)
-        except Exception:
-            pass
-        return str(v)                            # anything else: stringify
-    return [{k: scalar(v) for k, v in row.items()} for row in rows]
+# Render a list of dicts as a Markdown table — bypasses PyArrow entirely,
+# which segfaults on this box (pyarrow/numpy ABI mismatch). st.table and
+# st.dataframe both go through Arrow, so neither can be used here.
+def _md_table(rows: list) -> str:
+    if not rows:
+        return "_(none)_"
+    cols = list(rows[0].keys())
+    def cell(v):
+        return str(v).replace("|", "\\|").replace("\n", " ")
+    header = "| " + " | ".join(cell(c) for c in cols) + " |"
+    sep    = "| " + " | ".join("---"    for _ in cols) + " |"
+    body   = "\n".join(
+        "| " + " | ".join(cell(r.get(c, "")) for c in cols) + " |"
+        for r in rows
+    )
+    return "\n".join([header, sep, body])
+
 
 # Run the entire pipeline for a given query.
 def run_pipeline(query: str) -> str:
@@ -100,12 +99,12 @@ def run_pipeline(query: str) -> str:
             analysis = P.query_output_llm(query, results, csv_text, phi_model, phi_tok)
             status.update(label="Done", state="complete", expanded=False)
 
-        # Keep the UI tidy
+        # Keep the UI tidy — Markdown tables, not st.table (see _md_table note above)
         with st.expander("Retrieved pieces (with accompanying similarity scores to your question)"):
-            st.table(_arrow_safe([{"rank": i + 1, "similarity score": s, "title": t}
+            st.markdown(_md_table([{"rank": i + 1, "similarity score": s, "title": t}
                     for i, (t, s) in enumerate(ranked)]))
         with st.expander("Acoustic feature measurements"):
-            st.table(_arrow_safe([{"title": r["title"], **r["features"]} for r in results]))
+            st.markdown(_md_table([{"title": r["title"], **r["features"]} for r in results]))
         if len(results) > 1:
             with st.expander("MERT pairwise similarity"):
                 st.text(P.mert_pairwise(results))
