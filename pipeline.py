@@ -247,6 +247,10 @@ def query_mert(ranked: list, lookup: dict, context_lookup: dict, mert, processor
 
             # Extract the mean of the last hidden layer into a single embedding, convert to a numpy array, and retrieve features using librosa in extract_musical_features
             embedding = out.last_hidden_state.mean(dim=1).squeeze().cpu().numpy()
+            
+            del out, inputs
+            torch.cuda.empty_cache()
+            
             feats = extract_musical_features(matches[0])
 
             mert_results.append({"filename": str(matches[0]), "title": title, "clap_score": score,
@@ -337,7 +341,7 @@ def query_output_llm(user_query: str, mert_results: list, csv_text: str, model, 
     inputs = tok(text, return_tensors="pt").to(model.device)
 
     with torch.no_grad():
-        outputs = model.generate(**inputs, max_new_tokens=1500, do_sample=False, pad_token_id=tok.eos_token_id)
+        outputs = model.generate(**inputs, max_new_tokens=800, do_sample=False, pad_token_id=tok.eos_token_id)
 
     response = tok.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
     del inputs, outputs
