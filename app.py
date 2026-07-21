@@ -62,6 +62,25 @@ for m in st.session_state.messages:
     with st.chat_message(m["role"], avatar="🎶" if m["role"] == "assistant" else None):
         st.markdown(m["content"])
 
+# Coerce every cell to a plain Arrow-serializable scalar. numpy floats/arrays
+# in an object column segfault PyArrow inside st.table; this prevents that.
+def _arrow_safe(rows: list) -> list:
+    def scalar(v):
+        if isinstance(v, (str, bool)) or v is None:
+            return v
+        if isinstance(v, (int, float)):
+            return v
+        try:
+            import numpy as _np
+            if isinstance(v, _np.generic):      # numpy float64/int64/etc.
+                return v.item()
+            if isinstance(v, _np.ndarray):      # stray vector -> readable text
+                return _np.array2string(v, precision=3, threshold=8)
+        except Exception:
+            pass
+        return str(v)                            # anything else: stringify
+    return [{k: scalar(v) for k, v in row.items()} for row in rows]
+
 # Run the entire pipeline for a given query.
 def run_pipeline(query: str) -> str:
     try:
@@ -83,10 +102,10 @@ def run_pipeline(query: str) -> str:
 
         # Keep the UI tidy
         with st.expander("Retrieved pieces (with accompanying similarity scores to your question)"):
-            st.table([{"rank": i + 1, "similarity score": s, "title": t}
-                    for i, (t, s) in enumerate(ranked)])
+            st.table(_arrow_safe([{"rank": i + 1, "similarity score": s, "title": t}
+                    for i, (t, s) in enumerate(ranked)]))
         with st.expander("Acoustic feature measurements"):
-            st.table([{"title": r["title"], **r["features"]} for r in results])
+            st.table(_arrow_safe([{"title": r["title"], **r["features"]} for r in results]))
         if len(results) > 1:
             with st.expander("MERT pairwise similarity"):
                 st.text(P.mert_pairwise(results))
