@@ -40,7 +40,29 @@ def get_phi4():
 def get_mert():
     return P.load_mert()               # (mert, processor)
 
+WHITELIST = {
+    e.strip().lower()
+    for e in os.environ.get("SDSO_WHITELIST", "").split(",")
+    if e.strip()
+}
 
+if not st.user.is_logged_in:
+    st.title("SDSO Cross-Cultural Musical Analyst")
+    st.write("Please sign in with your email to continue.")
+    if st.button("Sign in"):
+        st.login("auth0")
+    st.stop()
+
+if (st.user.email or "").lower() not in WHITELIST:
+    st.error("This account isn't authorized for this application.")
+    st.caption(f"Signed in as {st.user.email}")
+    if st.button("Sign out"):
+        st.logout()
+    st.stop()
+
+with st.sidebar:
+    st.caption(f"Signed in as {st.user.email}")
+    st.button("Log out", on_click=st.logout)
 
 csv_text, lookup, context_lookup = get_csv()
 phi_model, phi_tok = get_phi4()
