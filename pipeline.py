@@ -115,6 +115,8 @@ def load_music_csv(path: str = CSV_PATH):
 
 # Load Phi 4.0 Model
 def load_phi4():
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.92, 0)
     bnb = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
@@ -345,6 +347,7 @@ def query_output_llm(user_query: str, mert_results: list, csv_text: str, model, 
 
     response = tok.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
     del inputs, outputs
+    torch.cuda.synchronize()
     torch.cuda.empty_cache()
     return response
 

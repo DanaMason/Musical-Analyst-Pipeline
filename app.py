@@ -1,3 +1,6 @@
+import faulthandler
+faulthandler.enable()
+import torch
 import streamlit as st
 import pipeline as P
 
@@ -28,12 +31,12 @@ def get_csv():
     return P.load_music_csv()          # (csv_text, lookup, context_lookup)
 
 
-@st.cache_resource(show_spinner="Loading Phi-4 (first launch only, ~30s)...")
+@st.cache_resource(show_spinner="Loading Phi-4...")
 def get_phi4():
     return P.load_phi4()               # (model, tok)
 
 
-@st.cache_resource(show_spinner="Loading MERT (first launch only, should be quick)...")
+@st.cache_resource(show_spinner="Loading MERT...")
 def get_mert():
     return P.load_mert()               # (mert, processor)
 
@@ -45,14 +48,14 @@ mert, mert_proc = get_mert()
 
 # Header and instructions
 st.title("SDSO Cross-Cultural Musical Analyst")
-st.caption("Please ask about the emotional or cultural significance of Lakota music from our SDSO recordings. Each query is answered independently, so include all relevant context in your query.")
+st.caption("Please ask about the emotional or cultural significance of Lakota music from our SDSO recordings.")
 
 # Conversation session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if not st.session_state.messages:
-    st.info("Please ask a question to begin:")
+    st.info("Please ask a question:")
 
 # Replay the visible transcript on every rerun.
 for m in st.session_state.messages:
@@ -95,7 +98,7 @@ def run_pipeline(query: str) -> str:
 
 
 # Input box for user queries
-if prompt := st.chat_input("Please ask a question regarding understanding, incorporating, or analyzing Lakota musical pieces from our hand curated and AI analyzed recordings."):
+if prompt := st.chat_input("Please ask a question regarding understanding, incorporating, or analyzing Lakota music."):
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
