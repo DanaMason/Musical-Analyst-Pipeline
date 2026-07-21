@@ -61,33 +61,37 @@ for m in st.session_state.messages:
 
 # Run the entire pipeline for a given query.
 def run_pipeline(query: str) -> str:
-    with st.status("Working through the pipeline...", expanded=True) as status:
-        st.write("Retrieving the 10 most relevant pieces...")
-        ranked = P.similarity_llm(query, csv_text, phi_model, phi_tok)
+    try:
+        with st.status("Working through the pipeline...", expanded=True) as status:
+            st.write("Retrieving the 10 most relevant pieces...")
+            ranked = P.similarity_llm(query, csv_text, phi_model, phi_tok)
 
-        st.write("Extracting acoustic features + MERT embeddings...")
-        results = P.query_mert(ranked, lookup, context_lookup, mert, mert_proc)
+            st.write("Extracting acoustic features + MERT embeddings...")
+            results = P.query_mert(ranked, lookup, context_lookup, mert, mert_proc)
 
-        if not results:
-            status.update(label="No audio matched the retrieved titles.",
-                          state="error", expanded=False)
-            return "I couldn't match any audio files to the retrieved titles for that question."
+            if not results:
+                status.update(label="No audio matched the retrieved titles.",
+                            state="error", expanded=False)
+                return "I couldn't match any audio files to the retrieved titles for that question."
 
-        st.write("Generating the cross-cultural analysis...")
-        analysis = P.query_output_llm(query, results, csv_text, phi_model, phi_tok)
-        status.update(label="Done", state="complete", expanded=False)
+            st.write("Generating the cross-cultural analysis...")
+            analysis = P.query_output_llm(query, results, csv_text, phi_model, phi_tok)
+            status.update(label="Done", state="complete", expanded=False)
 
-    # Keep the UI tidy
-    with st.expander("Retrieved pieces (with accompanying similarity scores to your question)"):
-        st.table([{"rank": i + 1, "similarity score": s, "title": t}
-                  for i, (t, s) in enumerate(ranked)])
-    with st.expander("Acoustic feature measurements"):
-        st.table([{"title": r["title"], **r["features"]} for r in results])
-    if len(results) > 1:
-        with st.expander("MERT pairwise similarity"):
-            st.text(P.mert_pairwise(results))
+        # Keep the UI tidy
+        with st.expander("Retrieved pieces (with accompanying similarity scores to your question)"):
+            st.table([{"rank": i + 1, "similarity score": s, "title": t}
+                    for i, (t, s) in enumerate(ranked)])
+        with st.expander("Acoustic feature measurements"):
+            st.table([{"title": r["title"], **r["features"]} for r in results])
+        if len(results) > 1:
+            with st.expander("MERT pairwise similarity"):
+                st.text(P.mert_pairwise(results))
 
-    return analysis
+        return analysis
+
+    except torch.cuda.OutOfMemoryError:
+        return "OOM Error. Please try a shorter question or restart the application."
 
 
 # Input box for user queries
